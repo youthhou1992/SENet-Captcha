@@ -10,28 +10,23 @@ import senet
 class LSTMOCR(object):
     def __init__(self, mode):
         self.mode = mode
-        # image
-        self.inputs = tf.placeholder(tf.float32, [None, FLAGS.image_height, FLAGS.image_width, FLAGS.image_channel])
-        # SparseTensor required by ctc_loss op
-        self.labels = tf.sparse_placeholder(tf.int32)
-        # 1d array of size [batch_size]
-        self.seq_len = tf.placeholder(tf.int32, [None])
-        # l2
-        self.training_flag = tf.placeholder(tf.bool)
-        self._extra_train_ops = []
+        if self.mode == 'train':
+            self.training_flag = True
+        else:
+            self.training_flag = False
 
-    def build_graph(self):
-        self._build_model()
-        self._build_train_op()
+    def build_graph(self, images, labels, seq_len):
+        self._build_model(images)
+        self._build_train_op(labels, seq_len)
 
         self.merged_summay = tf.summary.merge_all()
 
-    def _build_model(self):
+    def _build_model(self, images):
         with tf.variable_scope('cnn'):
 #            training_flag = tf.placeholder(tf.bool)
             model = senet.SE_Inception_resnet_v2(self.training_flag)
-            x = model.Build_SEnet(self.inputs)
-            print 'after cnn', x
+            x = model.Build_SEnet(images)
+#            print 'after cnn', x
         with tf.variable_scope('blstm'):
 
             x = tf.transpose(x,[0, 2, 1, 3])
@@ -59,12 +54,12 @@ class LSTMOCR(object):
             self.logits = tf.transpose(self.logits, (1, 0, 2))
             print self.logits
 
-    def _build_train_op(self):
+    def _build_train_op(self, labels, seq_len):
         self.global_step = tf.Variable(0, trainable=False)
 
-        self.loss = tf.nn.ctc_loss(labels=self.labels,
+        self.loss = tf.nn.ctc_loss(labels=labels,
                                    inputs=self.logits,
-                                   sequence_length=self.seq_len)
+                                   sequence_length=seq_len)
         self.cost = tf.reduce_mean(self.loss)
         tf.summary.scalar('cost', self.cost)
 
@@ -83,7 +78,7 @@ class LSTMOCR(object):
         # (it's slower but you'll get better results)
         # decoded, log_prob = tf.nn.ctc_greedy_decoder(logits, seq_len,merge_repeated=False)
         self.decoded, self.log_prob = tf.nn.ctc_beam_search_decoder(self.logits,
-                                                                    self.seq_len,
+                                                                    seq_len,
                                                                     merge_repeated=False)
         self.dense_decoded = tf.sparse_tensor_to_dense(self.decoded[0], default_value=-1)
 

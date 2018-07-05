@@ -1,4 +1,4 @@
-# CNN_LSTM_CTC_Tensorflow
+# SENet_BiLSTM_CTC_Tensorflow
 
 CNN+LSTM+CTC based OCR(Optical Character Recognition) implemented using tensorflow. 
 
