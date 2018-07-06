@@ -2,7 +2,7 @@ import os
 import numpy as np
 import tensorflow as tf
 import cv2
-import re
+
 
 # +-* + () + 10 digit + blank + space
 #num_classes = 3 + 2 + 10 + 1 + 1
@@ -10,42 +10,37 @@ num_classes = 10 + 26 +1 +1
 
 maxPrintLen = 100
 
-tf.app.flags.DEFINE_boolean('restore', False, 'whether to restore from the latest checkpoint')
-tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint/', 'the checkpoint dir')
-tf.app.flags.DEFINE_float('initial_learning_rate', 1e-3, 'inital lr')
+restore = False #'whether to restore from the latest checkpoint'
+checkpoint_dir = './checkpoint/' # 'the checkpoint dir')
+initial_learning_rate =  1e-3 #'inital lr'
+#
+image_height = 64 #image height')
+image_width = 192 # 'image width')
+image_channel = 3 # 'image channels as input')
+#
+max_stepsize = 12 # 'max stepsize in lstm, as well as '
+##                                                'the output channels of last layer in CNN')
+num_hidden = 256 # 'number of hidden units in lstm')
+num_epochs = 500 # 'maximum epochs')
+batch_size = 1 # 'the batch_size')
+save_steps = 100 # 'the step to save checkpoint')
+validation_steps = 500 # 'the step to validation')
+#
+decay_rate = 0.98 # 'the lr decay rate')
+beta1 = 0.9 # 'parameter of adam optimizer beta1')
+beta2 = 0.999 # 'adam parameter beta2')
+#
+decay_steps = 10000 # 'the lr decay_step for optimizer')
+momentum =  0.9 # 'the momentum')
+#
+train_dir = './imgs/train/' # 'the train data dir')
+val_dir = './imgs/val/' # 'the val data dir')
+infer_dir = './imgs/infer/' # 'the infer data dir')
+log_dir = './log' # 'the logging dir')
+mode = 'train' # 'train, val or infer')
+num_gpus = 0 # 'num of gpus')
+#
 
-tf.app.flags.DEFINE_integer('image_height', 64, 'image height')
-tf.app.flags.DEFINE_integer('image_width', 192, 'image width')
-tf.app.flags.DEFINE_integer('image_channel', 3, 'image channels as input')
-
-#tf.app.flags.DEFINE_integer('max_stepsize', 64, 'max stepsize in lstm, as well as '
-#                                                'the output channels of last layer in CNN')
-tf.app.flags.DEFINE_integer('num_hidden', 256, 'number of hidden units in lstm')
-tf.app.flags.DEFINE_integer('num_epochs', 500, 'maximum epochs')
-tf.app.flags.DEFINE_integer('batch_size', 40, 'the batch_size')
-tf.app.flags.DEFINE_integer('save_steps', 100, 'the step to save checkpoint')
-tf.app.flags.DEFINE_integer('validation_steps', 500, 'the step to validation')
-
-tf.app.flags.DEFINE_float('decay_rate', 0.98, 'the lr decay rate')
-tf.app.flags.DEFINE_float('beta1', 0.9, 'parameter of adam optimizer beta1')
-tf.app.flags.DEFINE_float('beta2', 0.999, 'adam parameter beta2')
-
-tf.app.flags.DEFINE_integer('decay_steps', 10000, 'the lr decay_step for optimizer')
-tf.app.flags.DEFINE_float('momentum', 0.9, 'the momentum')
-
-tf.app.flags.DEFINE_string('train_dir', './imgs/train/', 'the train data dir')
-tf.app.flags.DEFINE_string('val_dir', './imgs/val/', 'the val data dir')
-tf.app.flags.DEFINE_string('infer_dir', './imgs/infer/', 'the infer data dir')
-tf.app.flags.DEFINE_string('log_dir', './log', 'the logging dir')
-tf.app.flags.DEFINE_string('mode', 'train', 'train, val or infer')
-tf.app.flags.DEFINE_integer('num_gpus', 0, 'num of gpus')
-
-
-FLAGS = tf.app.flags.FLAGS
-
-# num_batches_per_epoch = int(num_train_samples/FLAGS.batch_size)
-
-#charset = '0123456789+-*()'
 charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 encode_maps = {}
 decode_maps = {}
@@ -58,6 +53,9 @@ SPACE_TOKEN = ''
 encode_maps[SPACE_TOKEN] = SPACE_INDEX
 decode_maps[SPACE_INDEX] = SPACE_TOKEN
 
+#WIDTH = 192
+#HEIGHT = 64
+#CHANNEL = 3
 
 class DataIterator:
     def __init__(self, data_dir):
@@ -73,8 +71,8 @@ class DataIterator:
                 img = np.array(img1, 'f') / 255.0 - 0.5
 #                im = cv2.imread(image_name).astype(np.float32)/255.
                 # resize to same height, different width will consume time on padding
-                im = cv2.resize(img, (FLAGS.image_width, FLAGS.image_height))
-                im = np.reshape(im, [FLAGS.image_height, FLAGS.image_width, FLAGS.image_channel])
+                im = cv2.resize(img, (image_width, image_height))
+                im = np.reshape(im, [image_height, image_width, image_channel])
                 #if(len(match) == 4):
 #                print(len(match))
                 code = image_name.split('/')[-1].split('_')[1].split('.')[0]#.upper()

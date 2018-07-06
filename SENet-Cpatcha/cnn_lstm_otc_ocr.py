@@ -3,7 +3,7 @@ import utils
 from tensorflow.python.training import moving_averages
 
 
-FLAGS = utils.FLAGS
+#FLAGS = utils.FLAGS
 num_classes = utils.num_classes
 import senet
 
@@ -11,7 +11,7 @@ class LSTMOCR(object):
     def __init__(self, mode):
         self.mode = mode
         # image
-        self.inputs = tf.placeholder(tf.float32, [None, FLAGS.image_height, FLAGS.image_width, FLAGS.image_channel])
+        self.inputs = tf.placeholder(tf.float32, [None, utils.image_height, utils.image_width, utils.image_channel])
         # SparseTensor required by ctc_loss op
         self.labels = tf.sparse_placeholder(tf.int32)
         # 1d array of size [batch_size]
@@ -31,20 +31,20 @@ class LSTMOCR(object):
 #            training_flag = tf.placeholder(tf.bool)
             model = senet.SE_Inception_resnet_v2(self.training_flag)
             x = model.Build_SEnet(self.inputs)
-            print 'after cnn', x
+#            print 'after cnn', x
         with tf.variable_scope('blstm'):
 
             x = tf.transpose(x,[0, 2, 1, 3])
-            x = tf.reshape(x, [FLAGS.batch_size, 12, -1])
+            x = tf.reshape(x, [utils.batch_size, 12, -1])
 
-            x.set_shape([FLAGS.batch_size, 12, 3216])
+            x.set_shape([utils.batch_size, 12, 3216])
             x = self._dense_blstm(x)
 #            print 'after dense_blstm', x
             x = tf.transpose(x, (1,0,2))
-            outputs = tf.reshape(x, [-1, FLAGS.num_hidden*2])
-            print outputs
+            outputs = tf.reshape(x, [-1, utils.num_hidden*2])
+#            print outputs
             W = tf.get_variable(name='W',
-                                shape=[FLAGS.num_hidden*2, num_classes],
+                                shape=[utils.num_hidden*2, num_classes],
                                 dtype=tf.float32,
                                 initializer=tf.contrib.layers.xavier_initializer())
             b = tf.get_variable(name='b',
@@ -54,10 +54,10 @@ class LSTMOCR(object):
 
             self.logits = tf.matmul(outputs, W) + b
 #            shape = tf.shape(FLAGS.batch_size)
-            self.logits = tf.reshape(self.logits, [FLAGS.batch_size, -1, num_classes])
+            self.logits = tf.reshape(self.logits, [utils.batch_size, -1, num_classes])
             # Time major
             self.logits = tf.transpose(self.logits, (1, 0, 2))
-            print self.logits
+#            print self.logits
 
     def _build_train_op(self):
         self.global_step = tf.Variable(0, trainable=False)
@@ -68,14 +68,14 @@ class LSTMOCR(object):
         self.cost = tf.reduce_mean(self.loss)
         tf.summary.scalar('cost', self.cost)
 
-        self.lrn_rate = tf.train.exponential_decay(FLAGS.initial_learning_rate,
+        self.lrn_rate = tf.train.exponential_decay(utils.initial_learning_rate,
                                                    self.global_step,
-                                                   FLAGS.decay_steps,
-                                                   FLAGS.decay_rate,
+                                                   utils.decay_steps,
+                                                   utils.decay_rate,
                                                    staircase=True)
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.initial_learning_rate,
-                                                beta1=FLAGS.beta1,
-                                                beta2=FLAGS.beta2).minimize(self.loss, global_step=self.global_step)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=utils.initial_learning_rate,
+                                                beta1=utils.beta1,
+                                                beta2=utils.beta2).minimize(self.loss, global_step=self.global_step)
         train_ops = [self.optimizer] + self._extra_train_ops
         self.train_op = tf.group(*train_ops)
 
@@ -88,13 +88,13 @@ class LSTMOCR(object):
         self.dense_decoded = tf.sparse_tensor_to_dense(self.decoded[0], default_value=-1)
 
     def _dense_blstm(self, input):
-        print 'after after cnn', input 
+#        print 'after after cnn', input 
         x = tf.transpose(input, [1,0,2])
         x = tf.reshape(x, [-1, 3216])
         x = tf.split(x, 12)
-        print 'x', x
+#        print 'x', x
         out = self._blstm(x, 'blstm1')
-        print out
+#        print out
 #        x = senet.Fully_connected(out, 256)
 #        print x
 #        x = tf.split(x, 12)
@@ -103,8 +103,8 @@ class LSTMOCR(object):
         
     def _blstm(self, input, name):
         with tf.variable_scope(name):
-            lstm_fw_cell = tf.contrib.rnn.BasicLSTMCell(FLAGS.num_hidden, forget_bias = 1.0)
-            lstm_bw_cell = tf.contrib.rnn.BasicLSTMCell(FLAGS.num_hidden, forget_bias = 1.0)
+            lstm_fw_cell = tf.contrib.rnn.BasicLSTMCell(utils.num_hidden, forget_bias = 1.0)
+            lstm_bw_cell = tf.contrib.rnn.BasicLSTMCell(utils.num_hidden, forget_bias = 1.0)
             outputs, _, _ = tf.contrib.rnn.static_bidirectional_rnn(lstm_fw_cell,
                                                                     lstm_bw_cell, input,
                                                                     dtype = tf.float32)
