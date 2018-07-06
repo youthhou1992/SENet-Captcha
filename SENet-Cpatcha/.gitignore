@@ -2,3 +2,4 @@
 *.py[cod]
 /imgs
 /checkpoint
+/log
